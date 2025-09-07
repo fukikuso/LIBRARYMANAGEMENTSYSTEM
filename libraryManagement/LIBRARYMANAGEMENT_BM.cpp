@@ -11,7 +11,7 @@ using namespace std;
 struct Book {
     string title;
     string author;
-    int isbn;
+    string isbn;
     bool isAvailable;
 };
 
@@ -140,36 +140,42 @@ void pauseScreen() {
 //load books and users data from text files
 void loadData() {
     ifstream file;
-    string line;
     
     //load books from books.txt file
     file.open("books.txt");
-    while (getline(file, line)) {
-        Book book;
-        book.title = line;
-        getline(file, book.author);
-        getline(file, line);
-        
-        getline(file, line);
-        book.isAvailable = (line == "1"); // All loaded books are available 
-        books.push_back(book); //Add book to end of vector 
+    if (file.is_open()) {
+        string title, author, isbn, isAvailable;
+        while (getline(file, title) && getline(file, author) && getline(file, isbn) && getline(file, isAvailable)) {
+            Book book;
+            book.title = title;
+            book.author = author;
+            book.isbn = isbn;
+            book.isAvailable = (isAvailable == "1");
+            books.push_back(book);
+        }
+        file.close();
     }
-    file.close();
     
     //load users from users.txt file 
     file.open("users.txt");
-    string name, id, borrowedBook;
-    while (getline(file, name) && getline(file, id) && getline(file, borrowedBook)) {
-        User user;
-        user.name = name;               
+    if (file.is_open()) {
+        string name, id, borrowedBook;
+        while (getline(file, name) && getline(file, id) && getline(file, borrowedBook)) {
+            User user;
+            user.name = name;
+            user.id = 0;
+            for (int i = 0; i < id.size(); i++) {
+                if (id[i] >= '0' && id[i] <= '9') {
+                    user.id = user.id * 10 + (id[i] - '0');
+                }
+            }
             
-        user.borrowedBook = (borrowedBook == "NONE") ? "" : borrowedBook;
-        users.push_back(user); // Add user to end of vector 
+            user.borrowedBook = (borrowedBook == "NONE") ? "" : borrowedBook;
+            users.push_back(user);
+        }
+        file.close();
     }
-    file.close();
 }
-
-
 //Save current books and users data to text files
 void saveData() {
    // Save books to books.txt
@@ -179,7 +185,7 @@ void saveData() {
            bookFile << books[i].title << endl;
            bookFile << books[i].author << endl;
            bookFile << books[i].isbn << endl;
-           bookFile << (books[i].isAvailable ? "1" : "0") <<endl;
+           bookFile << (books[i].isAvailable ? "1" : "0") << endl;
        }
        bookFile.close();
    }
@@ -199,8 +205,6 @@ void saveData() {
        userFile.close();
    }
 }
-
-
 //Add new book to the library 
 void addBook() {
    cout << "=======================================\n";
@@ -213,8 +217,7 @@ void addBook() {
    cout << "Enter book author: ";
    getline(cin, book.author);
    cout << "Enter ISBN: ";
-   cin >> book.isbn;
-   cin.ignore();
+   getline(cin, book.isbn); // Changed from cin >> to getline
    
    //Check if book with ISBN already exists
    for (int i = 0; i < books.size(); i++) {
@@ -224,8 +227,8 @@ void addBook() {
        }
    }
    
-   book.isAvailable = true;//New book is available 
-   books.push_back(book); //Add new book to end of vector 
+   book.isAvailable = true;
+   books.push_back(book);
    cout << "Book added successfully!\n";
 }
 
@@ -235,26 +238,22 @@ void removeBook() {
    cout << "              REMOVE BOOK\n";
    cout << "=======================================\n";
    
-   // Check if there are any books to remove
    if (books.empty()) {
        cout << "No books available to remove!\n";
        return;
    }
    
-   int isbn;
+   string isbn; // Changed from int to string
    cout << "Enter ISBN to remove: ";
-   cin >> isbn;
-   cin.ignore(); // Clear input buffer
+   getline(cin, isbn); // Changed from cin >> to getline
    
-   // Search for book by ISBN and remove it
    for (int i = 0; i < books.size(); i++) {
        if (books[i].isbn == isbn) {
-           // Check if book is currently borrowed
            if (!books[i].isAvailable) {
                cout << "Cannot remove book - it is currently borrowed!\n";
                return;
            }
-           books.erase(books.begin() + i); // Remove book from vector
+           books.erase(books.begin() + i);
            cout << "Book removed successfully!\n";
            return;
        }
@@ -368,7 +367,6 @@ void borrowBook() {
    cout << "Enter book title: ";
    getline(cin, title);
 
-
    //Find the user by name
    for (int i = 0; i < users.size(); i++) {
        if (users[i].name == name) {
@@ -398,6 +396,7 @@ void borrowBook() {
    }
    cout << "User not found!\n";
 }
+
 //Allow a user to return a borrow book
 void returnBook() {
    cout << "=======================================\n";
@@ -428,4 +427,3 @@ void returnBook() {
    }
    cout << "User not found!\n";
 }
-
